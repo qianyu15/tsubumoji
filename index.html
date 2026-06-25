@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Particle Text Test</title>
+  <style>
+    body {
+      margin: 0;
+      background: #0b1020;
+      overflow: hidden;
+      font-family: system-ui, sans-serif;
+    }
+
+    canvas {
+      display: block;
+    }
+
+    input {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      padding: 8px 12px;
+      font-size: 14px;
+      border: none;
+      border-radius: 6px;
+      outline: none;
+    }
+  </style>
+</head>
+<body>
+  <input id="text" value="404" />
+  <canvas id="c"></canvas>
+
+<script>
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let particles = [];
+
+class Particle {
+  constructor(x, y) {
+    this.x = Math.random() * canvas.width;
+    this.y = Math.random() * canvas.height;
+    this.tx = x;
+    this.ty = y;
+    this.vx = 0;
+    this.vy = 0;
+  }
+
+  update() {
+    const dx = this.tx - this.x;
+    const dy = this.ty - this.y;
+
+    this.vx += dx * 0.01;
+    this.vy += dy * 0.01;
+
+    this.vx *= 0.85;
+    this.vy *= 0.85;
+
+    this.x += this.vx;
+    this.y += this.vy;
+  }
+
+  draw() {
+    ctx.fillStyle = "#38bdf8";
+    ctx.fillRect(this.x, this.y, 2, 2);
+  }
+}
+
+function textToParticles(text) {
+  const off = document.createElement("canvas");
+  const octx = off.getContext("2d");
+
+  off.width = canvas.width;
+  off.height = canvas.height;
+
+  octx.fillStyle = "white";
+  octx.font = "bold 200px sans-serif";
+  octx.textAlign = "center";
+  octx.textBaseline = "middle";
+
+  octx.clearRect(0, 0, off.width, off.height);
+  octx.fillText(text, off.width / 2, off.height / 2);
+
+  const data = octx.getImageData(0, 0, off.width, off.height).data;
+
+  const pts = [];
+
+  for (let y = 0; y < off.height; y += 6) {
+    for (let x = 0; x < off.width; x += 6) {
+      const i = (y * off.width + x) * 4;
+      if (data[i] > 200) {
+        pts.push(new Particle(x, y));
+      }
+    }
+  }
+
+  return pts;
+}
+
+function rebuild(text) {
+  particles = textToParticles(text);
+}
+
+const input = document.getElementById("text");
+rebuild(input.value);
+
+input.addEventListener("input", () => {
+  rebuild(input.value);
+});
+
+function animate() {
+  ctx.fillStyle = "rgba(11, 16, 32, 0.2)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  particles.forEach(p => {
+    p.update();
+    p.draw();
+  });
+
+  requestAnimationFrame(animate);
+}
+
+animate();
+
+window.addEventListener("resize", () => location.reload());
+</script>
+</body>
+</html>
