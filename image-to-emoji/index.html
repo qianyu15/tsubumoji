@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Emoji Pixel Mapper (1-char lock)</title>
+<style>
+  body {
+    background:#111;
+    color:#eee;
+    font-family: monospace;
+    text-align:center;
+  }
+
+  input {
+    margin: 5px;
+  }
+
+  #out {
+    white-space: pre;
+    font-size: 10px;
+    line-height: 10px;
+    letter-spacing: 1px;
+    margin-top: 20px;
+  }
+
+  canvas { display:none; }
+</style>
+</head>
+<body>
+
+<h2>🎨 Emoji Pixel Mapper (1-char locked)</h2>
+
+<input type="file" id="file"><br><br>
+
+<label>暗:</label>
+<input type="text" id="dark" value="🐱" size="2">
+
+<label>明:</label>
+<input type="text" id="light" value="🦴" size="2">
+
+<br><br>
+
+<label>横解像度:</label>
+<input type="range" id="scale" min="20" max="120" value="60">
+
+<div id="out"></div>
+<canvas id="canvas"></canvas>
+
+<script>
+const fileInput = document.getElementById("file");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const out = document.getElementById("out");
+
+const darkInput = document.getElementById("dark");
+const lightInput = document.getElementById("light");
+const scaleInput = document.getElementById("scale");
+
+function firstChar(str) {
+  if (!str) return "";
+  // ざっくり1グリフ扱い（完全厳密じゃないけど気にするな）
+  return [...str][0];
+}
+
+fileInput.addEventListener("change", handleImage);
+darkInput.addEventListener("input", handleImage);
+lightInput.addEventListener("input", handleImage);
+scaleInput.addEventListener("input", handleImage);
+
+function handleImage() {
+  const file = fileInput.files[0];
+  if (!file) return;
+
+  const img = new Image();
+
+  img.onload = () => {
+    const targetWidth = parseInt(scaleInput.value);
+    const aspect = img.height / img.width;
+    const targetHeight = Math.round(targetWidth * aspect);
+
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+
+    ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+    const data = ctx.getImageData(0, 0, targetWidth, targetHeight).data;
+
+    const dark = firstChar(darkInput.value || "⬛");
+    const light = firstChar(lightInput.value || "⬜");
+
+    let result = "";
+
+    for (let y = 0; y < targetHeight; y++) {
+      for (let x = 0; x < targetWidth; x++) {
+
+        const i = (y * targetWidth + x) * 4;
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+
+        const brightness = (r + g + b) / 3;
+
+        result += brightness < 128 ? dark : light;
+      }
+      result += "\n";
+    }
+
+    out.textContent = result;
+  };
+
+  img.src = URL.createObjectURL(file);
+}
+</script>
+
+</body>
+</html>
